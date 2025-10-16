@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { projects as mockProjects } from "../data/mockData";
 import EditProjectModal from "../components/EditProjectModal";
+import ProjectModal from "../components/ProjectModal";
+import AddProjectModal from "../components/AddProjectModal";
+import toast, { Toaster } from "react-hot-toast";
 
 import {
   FaPlus,
@@ -10,56 +13,105 @@ import {
   FaEdit,
   FaTrash,
 } from "react-icons/fa";
-import ProjectModal from "../components/ProjectModal";
-import AddProjectModal from "../components/AddProjectModal";
-import toast, { Toaster } from "react-hot-toast";
 
 export default function Projects() {
   const [projects, setProjects] = useState(mockProjects);
   const [selectedProject, setSelectedProject] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editProject, setEditProject] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null); 
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+ 
+  const toastStyle = {
+    duration: 2500,
+    position: "top-right",
+    style: {
+      background: "#1f2937",
+      color: "#fff",
+      borderRadius: "10px",
+      padding: "12px 16px",
+      fontSize: "14px",
+    },
+  };
 
 
   const handleAddProject = (newProject) => {
     const conflict = projects.some((p) => p.deadline === newProject.deadline);
     if (conflict) {
-      toast.error("⚠️ Deadline conflict! Another project exists at same time.");
+      toast.error(
+        <span className="flex items-center gap-2">
+          <FaExclamationTriangle className="text-yellow-400" />
+          Deadline conflict! Another project exists at the same time.
+        </span>,
+        toastStyle
+      );
       return;
     }
-    setProjects([...projects, newProject]);
-    toast.success("✅ Project added successfully!");
+
+    setProjects((prev) => [...prev, newProject]);
+    toast.success(
+      <span className="flex items-center gap-2">
+        <FaCheckCircle className="text-green-400" />
+        Project added successfully!
+      </span>,
+      toastStyle
+    );
   };
 
 
   const handleEditProject = (updatedProject) => {
     const conflict = projects.some(
-      (p) =>
-        p.id !== updatedProject.id && p.deadline === updatedProject.deadline
+      (p) => p.id !== updatedProject.id && p.deadline === updatedProject.deadline
     );
+
     if (conflict) {
-      toast.error("⚠️ Deadline conflict! Another project exists at same time.");
+      toast.error(
+        <span className="flex items-center gap-2">
+          <FaExclamationTriangle className="text-yellow-400" />
+          Deadline conflict! Another project exists at same time.
+        </span>,
+        toastStyle
+      );
       return;
     }
 
-    setProjects(
-      projects.map((p) => (p.id === updatedProject.id ? updatedProject : p))
+    setProjects((prev) =>
+      prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
     );
     setEditProject(null);
-    toast.success("✏️ Project updated successfully!");
+    toast.success(
+      <span className="flex items-center gap-2">
+        <FaEdit className="text-blue-400" />
+        Project updated successfully!
+      </span>,
+      toastStyle
+    );
   };
 
 
   const confirmDeleteProject = () => {
-    setProjects(projects.filter((p) => p.id !== confirmDelete.id));
-    toast.success("🗑 Project deleted successfully!");
+    if (!confirmDelete) return;
+    setProjects((prev) => prev.filter((p) => p.id !== confirmDelete.id));
+    toast.success(
+      <span className="flex items-center gap-2">
+        <FaTrash className="text-red-500" />
+        Project deleted successfully!
+      </span>,
+      toastStyle
+    );
     setConfirmDelete(null);
   };
 
+
+  const total = projects.length;
+  const completed = projects.filter((p) => p.status === "Completed").length;
+  const ongoing = projects.filter((p) => p.status === "Ongoing").length;
+  const delayed = projects.filter((p) => p.status === "Delayed").length;
+
   return (
     <div className="p-6 bg-gray-900 min-h-screen text-gray-100">
-      <Toaster position="top-right" />
+      {/* Toast */}
+      <Toaster />
 
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
@@ -72,45 +124,25 @@ export default function Projects() {
         </button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between">
-          <div>
-            <h3 className="text-sm text-gray-400">Total Projects</h3>
-            <p className="text-2xl font-bold mt-2">{projects.length}</p>
+        {[
+          { label: "Total Projects", value: total, icon: <FaCheckCircle className="text-blue-500 text-3xl opacity-70" /> },
+          { label: "Completed", value: completed, icon: <FaCheckCircle className="text-green-500 text-3xl opacity-70" /> },
+          { label: "Ongoing", value: ongoing, icon: <FaClock className="text-yellow-400 text-3xl opacity-70" /> },
+          { label: "Delayed", value: delayed, icon: <FaExclamationTriangle className="text-red-500 text-3xl opacity-70" /> },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between"
+          >
+            <div>
+              <h3 className="text-sm text-gray-400">{stat.label}</h3>
+              <p className="text-2xl font-bold mt-2">{stat.value}</p>
+            </div>
+            {stat.icon}
           </div>
-          <FaCheckCircle className="text-blue-500 text-3xl opacity-70" />
-        </div>
-
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between">
-          <div>
-            <h3 className="text-sm text-gray-400">Completed</h3>
-            <p className="text-2xl font-bold mt-2">
-              {projects.filter((p) => p.status === "Completed").length}
-            </p>
-          </div>
-          <FaCheckCircle className="text-green-500 text-3xl opacity-70" />
-        </div>
-
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between">
-          <div>
-            <h3 className="text-sm text-gray-400">Ongoing</h3>
-            <p className="text-2xl font-bold mt-2">
-              {projects.filter((p) => p.status === "Ongoing").length}
-            </p>
-          </div>
-          <FaClock className="text-yellow-400 text-3xl opacity-70" />
-        </div>
-
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg flex items-center justify-between">
-          <div>
-            <h3 className="text-sm text-gray-400">Delayed</h3>
-            <p className="text-2xl font-bold mt-2">
-              {projects.filter((p) => p.status === "Delayed").length}
-            </p>
-          </div>
-          <FaExclamationTriangle className="text-red-500 text-3xl opacity-70" />
-        </div>
+        ))}
       </div>
 
       {/* Projects Table */}
@@ -171,7 +203,7 @@ export default function Projects() {
                       <FaEdit />
                     </button>
                     <button
-                      onClick={() => setConfirmDelete(proj)} 
+                      onClick={() => setConfirmDelete(proj)}
                       className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
                     >
                       <FaTrash />
@@ -184,7 +216,7 @@ export default function Projects() {
         </div>
       </div>
 
-      {/* View Project Modal */}
+      {/* Modals */}
       {selectedProject && (
         <ProjectModal
           project={selectedProject}
@@ -192,7 +224,6 @@ export default function Projects() {
         />
       )}
 
-      {/* Add Project Modal */}
       {showAddModal && (
         <AddProjectModal
           onClose={() => setShowAddModal(false)}
@@ -200,7 +231,6 @@ export default function Projects() {
         />
       )}
 
-      {/* Edit Project Modal */}
       {editProject && (
         <EditProjectModal
           project={editProject}

@@ -6,7 +6,7 @@ export default function TopHeader() {
   return (
     <header className="flex items-center justify-between bg-gray-800 p-4 shadow">
       {/* Search */}
-      <div className="flex items-center bg-gray-700 px-3 py-2 rounded-lg w-full sm:w-2/3 md:w-1/3">
+      <div className="flex items-center bg-gray-700 px-3 py-2 rounded-lg w-full sm:w-2/3 md:w-1/3 sm:mt-8">
         <FaSearch className="text-gray-400 mr-2" />
         <input
           type="text"

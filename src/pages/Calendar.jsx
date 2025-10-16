@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
-import { FaPlus, FaCalendarAlt, FaClock, FaTrash, FaEdit } from "react-icons/fa";
+import {
+  FaPlus,
+  FaCalendarAlt,
+  FaClock,
+  FaTrash,
+  FaEdit,
+} from "react-icons/fa";
 import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 
-const toastStyles = {
-  success: { autoClose: 2000, theme: "dark" },
-  error: { autoClose: 2000, theme: "dark" },
-  warning: { autoClose: 3000, theme: "dark" },
+const toastOptions = {
+  autoClose: 2000,
+  theme: "dark",
 };
 
 
@@ -20,26 +26,23 @@ const formatTime = (time24) => {
 };
 
 
-const parseTimeTo24 = (time12) => {
-  if (!time12.includes("AM") && !time12.includes("PM")) return time12;
-  const [time, modifier] = time12.split(" ");
-  let [hours, minutes] = time.split(":");
-  let h = parseInt(hours, 10);
-  if (modifier === "PM" && h < 12) h += 12;
-  if (modifier === "AM" && h === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${minutes}`;
+const parseTimeTo24 = (time) => {
+  if (!time) return "";
+  if (time.includes("AM") || time.includes("PM")) {
+    const [timePart, modifier] = time.split(" ");
+    let [hours, minutes] = timePart.split(":");
+    let h = parseInt(hours, 10);
+    if (modifier === "PM" && h < 12) h += 12;
+    if (modifier === "AM" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${minutes}`;
+  }
+  return time;
 };
 
 export default function Calendar() {
   const [events, setEvents] = useState(() => {
     const saved = localStorage.getItem("events");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          { id: 1, title: "Team Meeting", date: "2025-10-02", time: "10:00 AM" },
-          { id: 2, title: "Client Presentation", date: "2025-10-05", time: "3:00 PM" },
-          { id: 3, title: "Project Deadline", date: "2025-10-10", time: "11:59 PM" },
-        ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -47,7 +50,7 @@ export default function Calendar() {
   const [editEventId, setEditEventId] = useState(null);
   const [deleteEventId, setDeleteEventId] = useState(null);
 
-  
+
   useEffect(() => {
     localStorage.setItem("events", JSON.stringify(events));
   }, [events]);
@@ -55,57 +58,70 @@ export default function Calendar() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   const handleSaveEvent = () => {
-    if (!newEvent.title || !newEvent.date || !newEvent.time) {
-      toast.error("Please fill all fields!", toastStyles.error);
+    console.log("Saving event...", newEvent);
+
+    if (!newEvent.title.trim() || !newEvent.date || !newEvent.time) {
+      toast.warning("Please fill in all fields!", toastOptions);
       return;
     }
 
     const formattedEvent = {
-      ...newEvent,
-      time: formatTime(newEvent.time), 
+      title: newEvent.title.trim(),
+      date: newEvent.date,
+      time: formatTime(newEvent.time),
     };
 
-    const conflict = events.find(
-      (e) =>
+   
+    const conflict = events.find((e) => {
+      const existingTime24 = parseTimeTo24(e.time);
+      const newTime24 = parseTimeTo24(formattedEvent.time);
+      return (
         e.date === formattedEvent.date &&
-        e.time === formattedEvent.time &&
+        existingTime24 === newTime24 &&
         e.id !== editEventId
-    );
+      );
+    });
+
     if (conflict) {
-      toast.warning("There's already an event at the same date & time!", toastStyles.warning);
+      toast.warning(
+        "An event already exists at this date and time!",
+        toastOptions
+      );
       return;
     }
 
     if (editEventId) {
-      setEvents(events.map((e) => (e.id === editEventId ? { ...e, ...formattedEvent } : e)));
-      toast.success("Event updated successfully!", toastStyles.success);
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === editEventId ? { ...formattedEvent, id: e.id } : e
+        )
+      );
+      toast.success("Event updated successfully!", toastOptions);
     } else {
-      setEvents([...events, { id: Date.now(), ...formattedEvent }]);
-      toast.success("Event added successfully!", toastStyles.success);
+      setEvents((prev) => [...prev, { ...formattedEvent, id: Date.now() }]);
+      toast.success("Event added successfully!", toastOptions);
     }
 
+    setShowModal(false);
     setNewEvent({ title: "", date: "", time: "" });
     setEditEventId(null);
-    setShowModal(false);
   };
 
+  
   const handleEdit = (event) => {
     setNewEvent({
       title: event.title,
       date: event.date,
-      time: parseTimeTo24(event.time), 
+      time: parseTimeTo24(event.time),
     });
     setEditEventId(event.id);
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    setDeleteEventId(id);
-  };
-
+  
   const handleConfirmDelete = () => {
-    setEvents(events.filter((e) => e.id !== deleteEventId));
-    toast.success("Event deleted!", toastStyles.success);
+    setEvents((prev) => prev.filter((e) => e.id !== deleteEventId));
+    toast.success("Event deleted!", toastOptions);
     setDeleteEventId(null);
   };
 
@@ -122,8 +138,9 @@ export default function Calendar() {
         </button>
       </div>
 
+      {/* Calendar + Events */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar Grid */}
+        {/* Calendar */}
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg lg:col-span-2">
           <h3 className="text-lg font-bold mb-4">October 2025</h3>
           <div className="grid grid-cols-7 gap-2 text-center">
@@ -146,7 +163,9 @@ export default function Calendar() {
                 >
                   {day}
                   {eventToday && (
-                    <div className="mt-1 text-xs truncate">{eventToday.title}</div>
+                    <div className="mt-1 text-xs truncate">
+                      {eventToday.title}
+                    </div>
                   )}
                 </div>
               );
@@ -158,6 +177,11 @@ export default function Calendar() {
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
           <h3 className="text-lg font-bold mb-4">Upcoming Events</h3>
           <div className="space-y-4">
+            {events.length === 0 && (
+              <p className="text-gray-400 text-sm text-center">
+                No events yet.
+              </p>
+            )}
             {events.map((event) => (
               <div
                 key={event.id}
@@ -179,7 +203,7 @@ export default function Calendar() {
                     <FaEdit />
                   </button>
                   <button
-                    onClick={() => handleDelete(event.id)}
+                    onClick={() => setDeleteEventId(event.id)}
                     className="px-2 py-1 bg-red-600 rounded hover:bg-red-700"
                   >
                     <FaTrash />
@@ -191,9 +215,9 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+     
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-96">
             <h3 className="text-lg font-bold mb-4">
               {editEventId ? "Edit Event" : "Add New Event"}
@@ -202,19 +226,25 @@ export default function Calendar() {
               type="text"
               placeholder="Event Title"
               value={newEvent.title}
-              onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, title: e.target.value })
+              }
               className="w-full mb-3 p-2 rounded bg-gray-700 text-white outline-none"
             />
             <input
               type="date"
               value={newEvent.date}
-              onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, date: e.target.value })
+              }
               className="w-full mb-3 p-2 rounded bg-gray-700 text-white outline-none"
             />
             <input
               type="time"
               value={newEvent.time}
-              onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, time: e.target.value })
+              }
               className="w-full mb-3 p-2 rounded bg-gray-700 text-white outline-none"
             />
             <div className="flex justify-end gap-2">
@@ -239,13 +269,15 @@ export default function Calendar() {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      
       {deleteEventId && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-96">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-96 text-center">
             <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
-            <p className="mb-4">Are you sure you want to delete this event?</p>
-            <div className="flex justify-end gap-2">
+            <p className="mb-4 text-gray-300">
+              Are you sure you want to delete this event?
+            </p>
+            <div className="flex justify-center gap-2">
               <button
                 onClick={() => setDeleteEventId(null)}
                 className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 transition"

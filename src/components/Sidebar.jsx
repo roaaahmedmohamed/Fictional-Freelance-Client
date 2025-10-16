@@ -37,7 +37,7 @@ export default function Sidebar() {
           ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         {/* Header */}
-        <div className="flex justify-between items-center mb-8 md:mb-6">
+        <div className="flex justify-between items-center mb-8 md:mb-6 sm:mt-6">
           <h1 className="text-2xl font-bold text-blue-400">TailAdmin</h1>
           <button
             onClick={() => setIsOpen(false)}
@@ -53,7 +53,7 @@ export default function Sidebar() {
             <NavLink
               key={idx}
               to={item.path}
-              onClick={() => setIsOpen(false)} // يغلق الموبايل بعد الضغط
+              onClick={() => setIsOpen(false)} 
               className={({ isActive }) =>
                 `flex items-center gap-3 p-3 rounded-lg font-medium transition-all duration-200 ${
                   isActive
